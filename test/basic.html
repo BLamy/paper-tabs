@@ -46,6 +46,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <script>
 
+      function ensureDocumentHasFocus() {
+        window.top && window.top.focus();
+      }
+
       function checkSelectionBar(tabs, tab) {
         var tabRect = tab.getBoundingClientRect();
         var rect = Polymer.dom(tabs.root).querySelector('#selectionBar').getBoundingClientRect();
@@ -96,10 +100,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         test('to false as alignBottom', function() {
           assert.equal(tabs.alignBottom, false);
-        });
-
-        test('has role tablist', function() {
-          assert.equal(tabs.getAttribute('role'), 'tablist');
         });
       });
 
@@ -203,6 +203,81 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           Array.prototype.slice.apply(tabs.querySelectorAll('paper-tab')).forEach(function(tab) {
             assert.isFalse(tab.noink);
           });
+        });
+      });
+
+      suite('accessibility', function() {
+        var LEFT = 37;
+        var RIGHT = 39;
+        var tabs;
+
+        setup(function () {
+          tabs = fixture('basic');
+          Polymer.dom.flush();
+        });
+
+        test('paper-tabs has role tablist', function() {
+          assert.equal(tabs.getAttribute('role'), 'tablist');
+        });
+
+        test('paper-tab has role tab', function() {
+          tabs.items.forEach(function(tab) {
+            assert.equal(tab.getAttribute('role'), 'tab');
+          });
+        });
+
+        test('tabs are selected when focused', function() {
+          ensureDocumentHasFocus();
+
+          MockInteractions.focus(tabs.items[1]);
+          assert.equal(tabs.selected, 1);
+
+          MockInteractions.focus(tabs.items[2]);
+          assert.equal(tabs.selected, 2);
+        });
+
+        test('tabs are selected when focused using arrow keys', function(done) {
+          ensureDocumentHasFocus();
+
+          MockInteractions.focus(tabs.items[0]);
+          MockInteractions.pressAndReleaseKeyOn(tabs.selectedItem, RIGHT);
+          Polymer.Base.async(function() {
+            assert.equal(tabs.selected, 1);
+
+            MockInteractions.pressAndReleaseKeyOn(tabs.selectedItem, RIGHT);
+            Polymer.Base.async(function() {
+              assert.equal(tabs.selected, 2);
+
+              MockInteractions.pressAndReleaseKeyOn(tabs.selectedItem, LEFT);
+              Polymer.Base.async(function() {
+                assert.equal(tabs.selected, 1);
+                done();
+              }, 1);
+            }, 1);
+          }, 1);
+        });
+
+        test('tabs with RTL directionality have reversed arrow key movement', function(done) {
+          ensureDocumentHasFocus();
+
+          tabs.setAttribute('dir', 'rtl');
+
+          MockInteractions.focus(tabs.items[0]);
+          MockInteractions.pressAndReleaseKeyOn(tabs.selectedItem, LEFT);
+          Polymer.Base.async(function() {
+            assert.equal(tabs.selected, 1);
+
+            MockInteractions.pressAndReleaseKeyOn(tabs.selectedItem, LEFT);
+            Polymer.Base.async(function() {
+              assert.equal(tabs.selected, 2);
+
+              MockInteractions.pressAndReleaseKeyOn(tabs.selectedItem, RIGHT);
+              Polymer.Base.async(function() {
+                assert.equal(tabs.selected, 1);
+                done();
+              }, 1);
+            }, 1);
+          }, 1);
         });
       });
 

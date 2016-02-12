@@ -315,13 +315,15 @@ Custom property | Description | Default
 
       listeners: {
         'iron-resize': '_onTabSizingChanged',
-        'iron-items-changed': '_onTabSizingChanged',
+        'iron-items-changed': '_onIronItemsChanged',
         'iron-select': '_onIronSelect',
         'iron-deselect': '_onIronDeselect'
       },
 
       created: function() {
         this._holdJob = null;
+        this._bindActivateHandler = this._activateHandler.bind(this);
+        this._bindIsItem = this._isItem.bind(this);
       },
 
       ready: function() {
@@ -374,6 +376,28 @@ Custom property | Description | Default
           this._scroll();
           this._tabChanged(this.selectedItem);
         }, 10);
+      },
+
+      _isItem: function(node) {
+        return this.items.indexOf(node) >= 0;
+      },
+
+      _onIronItemsChanged: function(event) {
+        this._onTabSizingChanged();
+
+        var _bindActivateHandler = this._bindActivateHandler;
+
+        event.detail.addedNodes
+          .filter(this._bindIsItem)
+          .forEach(function(item) {
+            item.addEventListener('focus', _bindActivateHandler);
+          });
+
+        event.detail.removedNodes
+          .filter(this._bindIsItem)
+          .forEach(function(item) {
+            item.removeEventListener('focus', _bindActivateHandler);
+          });
       },
 
       _onIronSelect: function(event) {
